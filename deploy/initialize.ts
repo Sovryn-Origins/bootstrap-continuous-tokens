@@ -92,6 +92,7 @@ const createPermission = async (acl: ACL, entity: string, app: string, role: str
 
 const setupFundraisingPermission = async (
   governance: string,
+  multisig: string,
   fundraisingApps: FundrasingApps,
   daoAddress: string,
   signer: Signer,
@@ -112,6 +113,7 @@ const setupFundraisingPermission = async (
     fundraisingApps.aclConfigurator.setupFundraisingPermissions(
       acl.address,
       governance,
+      multisig,
       fundraisingApps.reserve.address,
       fundraisingApps.presale.address,
       fundraisingApps.marketMaker.address,
@@ -209,6 +211,7 @@ export const initialize = async (hre: HardhatRuntimeEnvironment) => {
   parameters.collateralTokenAddress ??= (await deployments.get("CollateralToken")).address;
   parameters.bondedTokenAddress ??= (await deployments.get("BondedToken")).address;
   const governance = parameters.governanceAddress ? parameters.governanceAddress : deployer;
+  const multisig = parameters.multisigAddress ? parameters.multisigAddress : deployer;
 
   console.log(`Collateral token at address ${parameters.collateralTokenAddress}`);
   console.log(`Bondend token at address ${parameters.bondedTokenAddress}`);
@@ -247,6 +250,7 @@ export const initialize = async (hre: HardhatRuntimeEnvironment) => {
     sellFee: parameters.selFee,
     beneficiary: parameters.beneficiaryAddress,
     governance: governance,
+    multisig: multisig,
   };
 
   if (!(await fundraisingApps.presale.hasInitialized())) {
@@ -321,7 +325,7 @@ export const initialize = async (hre: HardhatRuntimeEnvironment) => {
 
   console.log(`Reserve initialized`);
 
-  await setupFundraisingPermission(governance, fundraisingApps, daoAddress, signer);
+  await setupFundraisingPermission(governance,multisig, fundraisingApps, daoAddress, signer);
   console.log("ACL configured");
 
   await setupCollateral(
