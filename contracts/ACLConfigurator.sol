@@ -24,6 +24,7 @@ contract ACLConfigurator {
         MarketMaker marketMaker,
         Controller controller
     ) external notAlreadySetup {
+        address ANY_ENTITY = _acl.ANY_ENTITY();
         _acl.createPermission(_owner, reserve, reserve.SAFE_EXECUTE_ROLE(), _owner);
         _acl.createPermission(controller, reserve, reserve.ADD_PROTECTED_TOKEN_ROLE(), _owner);
         _acl.createPermission(marketMaker, reserve, reserve.TRANSFER_ROLE(), _owner);
@@ -50,7 +51,7 @@ contract ACLConfigurator {
         _acl.createPermission(_owner, controller, controller.OPEN_PRESALE_ROLE(), _owner);
         _acl.createPermission(presale, controller, controller.OPEN_TRADING_ROLE(), _owner);
         _acl.createPermission(_multisig, controller, controller.CONTRIBUTE_ROLE(), _owner);
-        _acl.createPermission(_multisig, controller, controller.OPEN_BUY_ORDER_ROLE(), _owner);
-        _acl.createPermission(_multisig, controller, controller.OPEN_SELL_ORDER_ROLE(), _owner);
+        _acl.createPermission(ANY_ENTITY, controller, controller.OPEN_BUY_ORDER_ROLE(), _owner);
+        _acl.createPermission(ANY_ENTITY, controller, controller.OPEN_SELL_ORDER_ROLE(), _owner);
     }
 }

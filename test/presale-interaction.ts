@@ -300,6 +300,7 @@ describe("Bonding Curve", () => {
     it("Should fail trying to contribute if not multisig address", async () => {
       await Controller.connect(governance).openPresale();
       await expect(Controller.contribute(contributionAmount)).to.be.revertedWith("APP_AUTH_FAILED");
+      await expect(Controller.connect(account1).contribute(contributionAmount)).to.be.revertedWith("APP_AUTH_FAILED");
     });
 
     it("Should open presale and allow to contribute", async () => {
@@ -416,6 +417,7 @@ describe("Bonding Curve", () => {
     });
   });
 
+  
   describe("Market Maker", async () => {
     it("Market maker should not be open", async () => {
       await Controller.connect(governance).openPresale();
@@ -436,12 +438,6 @@ describe("Bonding Curve", () => {
       expect(await MarketMaker.isOpen());
     });
 
-    it("Should fail trying to open a buy order if not multisig address", async () => {
-      const amount = BigNumber.from(100);
-      await openAndClosePresale(Controller, contributionAmount);
-      await expect(Controller.openBuyOrder(SOVToken.address, amount)).to.be.revertedWith("APP_AUTH_FAILED");
-    });
-
     it("Should open a buy order", async () => {
       const amount = BigNumber.from(100);
       await openAndClosePresale(Controller, contributionAmount);
@@ -449,7 +445,7 @@ describe("Bonding Curve", () => {
       const zeroSupplyBefore = await ZEROToken.totalSupply();
       const reserve = await Controller.reserve();
       const sovReserveBalanceBefore = await SOVToken.balanceOf(reserve);
-      const tx1 = await (await Controller.connect(multisig).openBuyOrder(SOVToken.address, amount)).wait();
+      const tx1 = await (await Controller.openBuyOrder(SOVToken.address, amount)).wait();
       const newBatch1 = tx1.logs
         .map((log: any) => {
           if (log.address === MarketMaker.address) {
@@ -474,7 +470,7 @@ describe("Bonding Curve", () => {
       // @ts-ignore
       await hre.timeAndMine.mine(batchBlock);
 
-      const tx2 = await (await Controller.connect(multisig).openBuyOrder(SOVToken.address, amount)).wait();
+      const tx2 = await (await Controller.openBuyOrder(SOVToken.address, amount)).wait();
       const newBatch2 = tx2.logs
         .map((log: any) => {
           if (log.address === MarketMaker.address) {
@@ -488,32 +484,28 @@ describe("Bonding Curve", () => {
       expect(newBatch2?.args.supply).to.eq(tokensTobeMinted.add(newBatch1?.args.supply));
       expect(newBatch2?.args.balance).to.eq(newBatch1?.args.balance.add(amount));
 
-      const zeroBalanceBefore = await ZEROToken.balanceOf(await multisig.getAddress());
-      await Controller.claimBuyOrder(await multisig.getAddress(), newBatch1?.args.id, SOVToken.address);
+      const zeroBalanceBefore = await ZEROToken.balanceOf(deployer);
+      await Controller.claimBuyOrder(deployer, newBatch1?.args.id, SOVToken.address);
       expect(await ZEROToken.totalSupply()).to.eq(zeroSupplyBefore.add(tokensTobeMinted));
-      expect(await ZEROToken.balanceOf(await multisig.getAddress())).to.eq(zeroBalanceBefore.add(purchaseReturn));
-    });
-
-    it("Should fail trying to open a sell order if not multisig address", async () => {
-      const amount = BigNumber.from(100);
-      await openAndClosePresale(Controller, contributionAmount);
-      await expect(Controller.openSellOrder(SOVToken.address, amount)).to.be.revertedWith("APP_AUTH_FAILED");
+      expect(await ZEROToken.balanceOf(deployer)).to.eq(zeroBalanceBefore.add(purchaseReturn));
     });
 
     it("Should open a sell order", async () => {
       const amount = BigNumber.from(1000);
       await openAndClosePresale(Controller, contributionAmount);
+      //transfer Zero tokens to deployer so he can sell them
+      await ZEROToken.connect(multisig).transfer(deployer,amount);
 
-      await Controller.connect(multisig).openBuyOrder(SOVToken.address, amount);
+      await Controller.openBuyOrder(SOVToken.address, amount);
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       await hre.timeAndMine.mine(batchBlock);
 
       const zeroSupplyBefore = await ZEROToken.totalSupply();
-      const zeroBalanceBefore = await ZEROToken.balanceOf(await multisig.getAddress());
-      const sovBalanceBefore = await SOVToken.balanceOf(await multisig.getAddress());
+      const zeroBalanceBefore = await ZEROToken.balanceOf(deployer);
+      const sovBalanceBefore = await SOVToken.balanceOf(deployer);
 
-      const tx1 = await (await Controller.connect(multisig).openSellOrder(SOVToken.address, amount)).wait();
+      const tx1 = await (await Controller.openSellOrder(SOVToken.address, amount)).wait();
       const newBatch1 = tx1.logs
         .map((log: any) => {
           if (log.address === MarketMaker.address) {
@@ -524,7 +516,7 @@ describe("Bonding Curve", () => {
         .find((event: any) => event?.name === "NewBatch");
 
       expect(zeroSupplyBefore).to.eq((await ZEROToken.totalSupply()).add(amount));
-      expect(zeroBalanceBefore).to.eq((await ZEROToken.balanceOf(await multisig.getAddress())).add(amount));
+      expect(zeroBalanceBefore).to.eq((await ZEROToken.balanceOf(deployer)).add(amount));
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
@@ -532,9 +524,9 @@ describe("Bonding Curve", () => {
 
       const collateralsToBeClaimed = await MarketMaker.collateralsToBeClaimed(SOVToken.address);
 
-      await Controller.claimSellOrder(await multisig.getAddress(), newBatch1?.args.id, SOVToken.address);
+      await Controller.claimSellOrder(deployer, newBatch1?.args.id, SOVToken.address);
 
-      expect(await SOVToken.balanceOf(await multisig.getAddress())).to.eq(sovBalanceBefore.add(collateralsToBeClaimed));
+      expect(await SOVToken.balanceOf(deployer)).to.eq(sovBalanceBefore.add(collateralsToBeClaimed));
     });
   });
   describe("Closing Bonding Curve", async () => {
@@ -542,36 +534,41 @@ describe("Bonding Curve", () => {
       await openAndClosePresale(Controller, contributionAmount);
       const amount = BigNumber.from(100);
       //check permissions previously
-      expect(await ACL["hasPermission(address,address,bytes32)"](await multisig.getAddress(), Controller.address, await Controller.OPEN_BUY_ORDER_ROLE())).eq(true);
+      expect(await ACL["hasPermission(address,address,bytes32)"](deployer, Controller.address, await Controller.OPEN_BUY_ORDER_ROLE())).eq(true);
+      expect(await ACL["hasPermission(address,address,bytes32)"](await account1.getAddress(), Controller.address, await Controller.OPEN_BUY_ORDER_ROLE())).eq(true);
 
       //revoke buy order permissions
       await ACL.connect(governance).revokePermission(
-        await multisig.getAddress(),
+        await ACL.ANY_ENTITY(),
         Controller.address,
         await Controller.OPEN_BUY_ORDER_ROLE(),
       );
 
-      expect(await ACL["hasPermission(address,address,bytes32)"](await multisig.getAddress(), Controller.address, await Controller.OPEN_BUY_ORDER_ROLE())).eq(false);
+      expect(await ACL["hasPermission(address,address,bytes32)"](deployer, Controller.address, await Controller.OPEN_BUY_ORDER_ROLE())).eq(false);
+      expect(await ACL["hasPermission(address,address,bytes32)"](await account1.getAddress(), Controller.address, await Controller.OPEN_BUY_ORDER_ROLE())).eq(false);
 
-      await expect(Controller.connect(multisig).openBuyOrder(SOVToken.address, amount)).to.be.revertedWith("APP_AUTH_FAILED");;
-
+      await expect(Controller.openBuyOrder(SOVToken.address, amount)).to.be.revertedWith("APP_AUTH_FAILED");;
+      await expect(Controller.connect(account1).openBuyOrder(SOVToken.address, amount)).to.be.revertedWith("APP_AUTH_FAILED");
     });
     it("Should fail trying to open a sell order after revoke permissions", async () => {
       await openAndClosePresale(Controller, contributionAmount);
       const amount = BigNumber.from(100);
       //check permissions previously
-      expect(await ACL["hasPermission(address,address,bytes32)"](await multisig.getAddress(), Controller.address, await Controller.OPEN_SELL_ORDER_ROLE())).eq(true);
+      expect(await ACL["hasPermission(address,address,bytes32)"](deployer, Controller.address, await Controller.OPEN_SELL_ORDER_ROLE())).eq(true);
+      expect(await ACL["hasPermission(address,address,bytes32)"](await account1.getAddress(), Controller.address, await Controller.OPEN_SELL_ORDER_ROLE())).eq(true);
 
       //revoke sell order permissions
       await ACL.connect(governance).revokePermission(
-        await multisig.getAddress(),
+        await ACL.ANY_ENTITY(),
         Controller.address,
         await Controller.OPEN_SELL_ORDER_ROLE(),
       );
 
-      expect(await ACL["hasPermission(address,address,bytes32)"](await multisig.getAddress(), Controller.address, await Controller.OPEN_SELL_ORDER_ROLE())).eq(false);
+      expect(await ACL["hasPermission(address,address,bytes32)"](deployer, Controller.address, await Controller.OPEN_SELL_ORDER_ROLE())).eq(false);
+      expect(await ACL["hasPermission(address,address,bytes32)"](await account1.getAddress(), Controller.address, await Controller.OPEN_SELL_ORDER_ROLE())).eq(false);
 
-      await expect(Controller.connect(multisig).openSellOrder(SOVToken.address, amount)).to.be.revertedWith("APP_AUTH_FAILED");
+      await expect(Controller.openSellOrder(SOVToken.address, amount)).to.be.revertedWith("APP_AUTH_FAILED");
+      await expect(Controller.connect(account1).openSellOrder(SOVToken.address, amount)).to.be.revertedWith("APP_AUTH_FAILED");
     });
     it("Should fail trying deployer to transfer reserve fund", async () => {
       await openAndClosePresale(Controller, contributionAmount);
