@@ -84,6 +84,8 @@ type Parameters = {
   governanceAddress?: string;
   // the address of the beneficiary, fees will be transfer to this address.
   beneficiaryAddress: string;
+  // the address of the multisig, it is the only address with permission to buy bonded tokens. If not povided, permission remains to deployer address
+  multisigAddress?: string;
 };
 declare module "hardhat/types/config" {
   export interface HardhatNetworkUserConfig {
@@ -119,6 +121,7 @@ const config: HardhatUserConfig = {
         selFee: PCT_BASE.mul(3).div(1000),
         beneficiaryAddress: "0x4D1A9fD1E1e67E83Ffe72Bdd769088d689993E4B",
         governanceAddress: "0x4D1A9fD1E1e67E83Ffe72Bdd769088d689993E4B",
+        multisigAddress: "0xB0D1D7fad89CfC28394b0B1AB51d24c432170f5A",
       },
       accounts: {
         mnemonic,
@@ -158,6 +161,7 @@ const config: HardhatUserConfig = {
         selFee: PCT_BASE.mul(3).div(1000),
         beneficiaryAddress: "",
         governanceAddress: "",
+        multisigAddress: "",
       },
       url: "https://public-node.testnet.rsk.co",
       accounts: getPrivateKey(),
@@ -178,6 +182,7 @@ const config: HardhatUserConfig = {
         collateralTokenAddress: "0x6a9A07972D07e58F0daf5122d11E069288A375fb",
         beneficiaryAddress: "0x4D1A9fD1E1e67E83Ffe72Bdd769088d689993E4B",
         governanceAddress: "0x4D1A9fD1E1e67E83Ffe72Bdd769088d689993E4B",
+        multisigAddress: "0x4D1A9fD1E1e67E83Ffe72Bdd769088d689993E4B",
       },
       url: "https://testnet.sovryn.app/rpc",
       accounts: getPrivateKey(),
@@ -199,6 +204,7 @@ const config: HardhatUserConfig = {
         bondedTokenAddress: "0x139483e22575826183F5b56dd242f8f2C1AEf327",
         beneficiaryAddress: "0x4D1A9fD1E1e67E83Ffe72Bdd769088d689993E4B",
         governanceAddress: "0x4D1A9fD1E1e67E83Ffe72Bdd769088d689993E4B",
+        multisigAddress: "0x4D1A9fD1E1e67E83Ffe72Bdd769088d689993E4B",
       },
       url: "https://testnet.sovryn.app/rpc",
       accounts: getPrivateKey(),
@@ -220,6 +226,7 @@ const config: HardhatUserConfig = {
         bondedTokenAddress: "0x2e6B1d146064613E8f521Eb3c6e65070af964EbB",
         beneficiaryAddress: "0x924f5ad34698Fd20c90Fe5D5A8A0abd3b42dc711",
         governanceAddress: "0x924f5ad34698Fd20c90Fe5D5A8A0abd3b42dc711",
+        multisigAddress: "0x924f5ad34698Fd20c90Fe5D5A8A0abd3b42dc711",
       },
       url: "https://mainnet.sovryn.app/rpc",
       accounts: getPrivateKey(),

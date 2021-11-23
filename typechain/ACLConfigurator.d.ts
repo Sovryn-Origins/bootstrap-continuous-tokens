@@ -21,12 +21,12 @@ import { TypedEventFilter, TypedEvent, TypedListener } from "./commons";
 
 interface ACLConfiguratorInterface extends ethers.utils.Interface {
   functions: {
-    "setupFundraisingPermissions(address,address,address,address,address,address)": FunctionFragment;
+    "setupFundraisingPermissions(address,address,address,address,address,address,address)": FunctionFragment;
   };
 
   encodeFunctionData(
     functionFragment: "setupFundraisingPermissions",
-    values: [string, string, string, string, string, string]
+    values: [string, string, string, string, string, string, string]
   ): string;
 
   decodeFunctionResult(
@@ -84,6 +84,7 @@ export class ACLConfigurator extends BaseContract {
     setupFundraisingPermissions(
       _acl: string,
       _owner: string,
+      _multisig: string,
       reserve: string,
       presale: string,
       marketMaker: string,
@@ -95,6 +96,7 @@ export class ACLConfigurator extends BaseContract {
   setupFundraisingPermissions(
     _acl: string,
     _owner: string,
+    _multisig: string,
     reserve: string,
     presale: string,
     marketMaker: string,
@@ -106,6 +108,7 @@ export class ACLConfigurator extends BaseContract {
     setupFundraisingPermissions(
       _acl: string,
       _owner: string,
+      _multisig: string,
       reserve: string,
       presale: string,
       marketMaker: string,
@@ -120,6 +123,7 @@ export class ACLConfigurator extends BaseContract {
     setupFundraisingPermissions(
       _acl: string,
       _owner: string,
+      _multisig: string,
       reserve: string,
       presale: string,
       marketMaker: string,
@@ -132,6 +136,7 @@ export class ACLConfigurator extends BaseContract {
     setupFundraisingPermissions(
       _acl: string,
       _owner: string,
+      _multisig: string,
       reserve: string,
       presale: string,
       marketMaker: string,
